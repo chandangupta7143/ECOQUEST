@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+
+  # ─── MongoDB Database ───────────────────────────────────────
+  mongo:
+    image: mongo:7
+    container_name: ecoquest-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: ecoquest
+    restart: unless-stopped
+    networks:
+      - ecoquest-net
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ─── Node.js Backend ────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ecoquest-backend
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./backend/.env.docker
+    depends_on:
+      mongo:
+        condition: service_healthy
+    volumes:
+      - uploads_data:/app/uploads
+    restart: unless-stopped
+    networks:
+      - ecoquest-net
+
+  # ─── React Frontend (served via nginx) ──────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ecoquest-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - ecoquest-net
+
+# ─── Named Volumes ──────────────────────────────────────────
+volumes:
+  mongo_data:
+  uploads_data:
+
+# ─── Shared Network ─────────────────────────────────────────
+networks:
+  ecoquest-net:
+    driver: bridge

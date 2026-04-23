@@ -1,0 +1,7 @@
+node_modules
+npm-debug.log
+uploads/*
+# NEVER bake .env files into Docker image — injected at runtime via env_file
+.env
+.env.docker
+.env.*
