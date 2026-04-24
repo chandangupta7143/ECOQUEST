@@ -19,12 +19,26 @@ if (!process.env.JWT_SECRET) {
 
 const app = express();
 
-// CORS — allow local dev (5173) and same-origin in production (nginx proxy)
+// CORS — allow Vercel frontend in production, localhost in dev
 const allowedOrigins = process.env.NODE_ENV === 'production'
-  ? true  // nginx proxies from same origin, so all requests are same-origin
+  ? [
+      'https://ecoquest-pearl.vercel.app',
+      // Also allow any custom domain set via env var (e.g. custom Vercel domain)
+      ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
+    ]
   : ['http://localhost:5173', 'http://127.0.0.1:5173'];
 
-app.use(cors({ origin: allowedOrigins, credentials: true }));
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (curl, Postman, server-to-server)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error(`CORS: origin ${origin} not allowed`));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
