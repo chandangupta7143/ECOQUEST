@@ -37,9 +37,9 @@ const upload = multer({
 router.get('/', auth, async (req, res) => {
   try {
     const filter = { isActive: true };
-    if (req.query.class)   filter.class   = req.query.class;
-    if (req.query.subject) filter.subject = req.query.subject;
-    if (req.query.chapter) filter.chapter = req.query.chapter;
+    if (req.query.class   && req.query.class.trim())   filter.class   = req.query.class.trim();
+    if (req.query.subject && req.query.subject.trim()) filter.subject = req.query.subject.trim();
+    if (req.query.chapter && req.query.chapter.trim()) filter.chapter = req.query.chapter.trim();
     const notes = await Note.find(filter).populate('uploadedBy', 'name').sort({ createdAt: -1 });
     res.json(notes);
   } catch (err) {

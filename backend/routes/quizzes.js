@@ -9,8 +9,9 @@ const { updateProgress } = require('../utils/userProgress');
 router.get('/', auth, async (req, res) => {
   try {
     const filter = { isActive: true };
-    if (req.query.class) filter.class = req.query.class;
-    if (req.query.subject) filter.subject = req.query.subject;
+    // Only apply class filter when a non-empty value is provided
+    if (req.query.class && req.query.class.trim()) filter.class = req.query.class.trim();
+    if (req.query.subject && req.query.subject.trim()) filter.subject = req.query.subject.trim();
     const quizzes = await Quiz.find(filter).populate('createdBy', 'name');
     res.json(quizzes);
   } catch (err) {
