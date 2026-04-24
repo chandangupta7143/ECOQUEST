@@ -99,6 +99,7 @@ export default function TeacherDashboard() {
   /* subject / chapter editing */
   const [addingSubject, setAddingSubject] = useState(false);
   const [newSubjectName, setNewSubjectName] = useState('');
+  const [newSubjectClass, setNewSubjectClass] = useState('Class 9');
   const [editingSubject, setEditingSubject] = useState(null);
   const [addingChapterFor, setAddingChapterFor] = useState(null);
   const [newChapterName, setNewChapterName] = useState('');
@@ -230,12 +231,13 @@ export default function TeacherDashboard() {
     const name = newSubjectName.trim();
     if (!name) return;
     try {
-      const { data } = await api.post('/subjects', { name });
+      const { data } = await api.post('/subjects', { name, class: newSubjectClass });
       setSubjects([...subjects, data]);
       setExpandedSubjects(prev => ({ ...prev, [data._id]: true }));
       setActiveSubjectId(data._id);
       setActiveChapterId(null);
       setNewSubjectName('');
+      setNewSubjectClass('Class 9');
       setAddingSubject(false);
     } catch {}
   };
@@ -566,7 +568,12 @@ export default function TeacherDashboard() {
                           )}
 
                           {editingSubject?.id !== subj._id && (
-                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                            <>
+                              <span className="text-[10px] px-1.5 py-0.5 rounded font-mono shrink-0"
+                                style={{ background: 'rgba(22,163,74,0.12)', color: '#4ade80', border: '1px solid rgba(22,163,74,0.20)' }}>
+                                {subj.class || 'All'}
+                              </span>
+                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                               <button onClick={() => setEditingSubject({ id: subj._id, name: subj.name })}
                                 className="p-0.5 rounded hover:text-white transition-colors" style={{ color: 'var(--text-3)' }}>
                                 <Pencil size={10} />
@@ -576,6 +583,7 @@ export default function TeacherDashboard() {
                                 <Trash2 size={10} />
                               </button>
                             </div>
+                            </>
                           )}
                         </div>
 
@@ -642,16 +650,29 @@ export default function TeacherDashboard() {
                     ))}
 
                     {/* Add subject */}
-                    <div className="px-3 pt-1 pb-2">
+                    <div className="px-3 pt-1 pb-3">
                       {addingSubject ? (
-                        <div className="flex items-center gap-1.5">
-                          <input autoFocus className="input text-[12px] py-1 flex-1"
+                        <div className="space-y-1.5">
+                          <input autoFocus className="input text-[12px] py-1 w-full"
                             placeholder="Subject name..."
                             value={newSubjectName}
                             onChange={e => setNewSubjectName(e.target.value)}
-                            onKeyDown={e => { if (e.key === 'Enter') addSubject(); if (e.key === 'Escape') { setAddingSubject(false); setNewSubjectName(''); } }} />
-                          <button onClick={addSubject} className="text-eco-400 shrink-0"><Save size={12} /></button>
-                          <button onClick={() => { setAddingSubject(false); setNewSubjectName(''); }} style={{ color: 'var(--text-3)' }} className="shrink-0"><X size={12} /></button>
+                            onKeyDown={e => { if (e.key === 'Escape') { setAddingSubject(false); setNewSubjectName(''); setNewSubjectClass('Class 9'); } }} />
+                          <select
+                            className="input text-[12px] py-1 w-full"
+                            value={newSubjectClass}
+                            onChange={e => setNewSubjectClass(e.target.value)}>
+                            {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+                          </select>
+                          <div className="flex gap-1.5">
+                            <button onClick={addSubject} className="btn-primary text-[11px] flex-1" style={{ padding: '0.3rem 0' }}>
+                              <Save size={11} /> Save
+                            </button>
+                            <button onClick={() => { setAddingSubject(false); setNewSubjectName(''); setNewSubjectClass('Class 9'); }}
+                              className="btn-secondary text-[11px]" style={{ padding: '0.3rem 0.6rem' }}>
+                              <X size={11} />
+                            </button>
+                          </div>
                         </div>
                       ) : (
                         <button onClick={() => setAddingSubject(true)}

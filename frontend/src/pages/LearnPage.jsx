@@ -26,10 +26,11 @@ export default function LearnPage() {
   useEffect(() => {
     if (!user) return;
     setLoading(true);
+    const cls = encodeURIComponent(user.class || '');
     Promise.all([
-      api.get(`/quizzes?class=${encodeURIComponent(user.class || '')}`),
-      api.get(`/notes?class=${encodeURIComponent(user.class || '')}`),
-      api.get('/subjects'),
+      api.get(`/quizzes?class=${cls}`),
+      api.get(`/notes?class=${cls}`),
+      api.get(`/subjects?class=${cls}`),
     ])
       .then(([qr, nr, sr]) => {
         setQuizzes(qr.data);

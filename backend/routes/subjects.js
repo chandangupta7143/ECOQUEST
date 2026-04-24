@@ -4,10 +4,15 @@ const Subject = require('../models/Subject');
 const Quiz = require('../models/Quiz');
 const Note = require('../models/Note');
 
-// Get all subjects
+// Get subjects (filter by class for students)
 router.get('/', auth, async (req, res) => {
   try {
-    const subjects = await Subject.find({ isActive: true }).sort({ createdAt: 1 });
+    const filter = { isActive: true };
+    // Students only see their class subjects; teachers see all
+    if (req.user.role !== 'teacher' && req.query.class && req.query.class.trim()) {
+      filter.class = req.query.class.trim();
+    }
+    const subjects = await Subject.find(filter).sort({ createdAt: 1 });
     res.json(subjects);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -18,7 +23,11 @@ router.get('/', auth, async (req, res) => {
 router.post('/', auth, async (req, res) => {
   try {
     if (req.user.role !== 'teacher') return res.status(403).json({ message: 'Forbidden' });
-    const subject = await Subject.create({ name: req.body.name, createdBy: req.user.id });
+    const subject = await Subject.create({
+      name: req.body.name,
+      class: req.body.class || '',
+      createdBy: req.user.id,
+    });
     res.status(201).json(subject);
   } catch (err) {
     res.status(500).json({ message: err.message });
