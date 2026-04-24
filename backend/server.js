@@ -19,20 +19,21 @@ if (!process.env.JWT_SECRET) {
 
 const app = express();
 
-// CORS — allow Vercel frontend in production, localhost in dev
-const allowedOrigins = process.env.NODE_ENV === 'production'
-  ? [
-      'https://ecoquest-pearl.vercel.app',
-      // Also allow any custom domain set via env var (e.g. custom Vercel domain)
-      ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
-    ]
-  : ['http://localhost:5173', 'http://127.0.0.1:5173'];
+// CORS — always allow Vercel production + local dev
+// NOTE: Not gated by NODE_ENV because Render may not have it set
+const allowedOrigins = [
+  'https://ecoquest-pearl.vercel.app',       // Vercel production
+  'http://localhost:5173',                    // Local dev
+  'http://127.0.0.1:5173',                   // Local dev alt
+  ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []), // custom domain
+];
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (curl, Postman, server-to-server)
+    // Allow requests with no origin (curl, Postman, mobile apps, server-to-server)
     if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) return callback(null, true);
+    console.warn(`CORS blocked: ${origin}`);
     callback(new Error(`CORS: origin ${origin} not allowed`));
   },
   credentials: true,
