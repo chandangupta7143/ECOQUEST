@@ -322,11 +322,12 @@ export default function TeacherDashboard() {
   };
 
   const tabs = [
-    { id: 'overview', label: 'Overview', icon: ClipboardList },
-    { id: 'submissions', label: `Reviews${pending.length ? ` (${pending.length})` : ''}`, icon: Inbox },
-    { id: 'tasks', label: 'Tasks', icon: ClipboardList },
-    { id: 'content', label: 'Content', icon: BookOpen },
-    { id: 'students', label: 'Students', icon: Users },
+    { id: 'overview',     label: 'Overview',                                                       icon: ClipboardList },
+    { id: 'submissions',  label: `Reviews${pending.length ? ` (${pending.length})` : ''}`,         icon: Inbox },
+    { id: 'tasks',        label: 'Tasks',                                                          icon: ClipboardList },
+    { id: 'tests',        label: `Tests${quizzes.length ? ` (${quizzes.length})` : ''}`,           icon: FileText },
+    { id: 'content',      label: 'Content',                                                        icon: BookOpen },
+    { id: 'students',     label: 'Students',                                                       icon: Users },
   ];
 
   const cardStyle = { background: 'var(--card)', border: '1px solid var(--border)' };
@@ -526,6 +527,55 @@ export default function TeacherDashboard() {
                     </div>
                   )}
                 </div>
+              </div>
+            )}
+
+            {/* ── ALL TESTS ── */}
+            {tab === 'tests' && (
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-[13px]" style={{ color: 'var(--text-3)' }}>
+                    {quizzes.length} total test{quizzes.length !== 1 ? 's' : ''} across all chapters
+                  </p>
+                </div>
+                {quizzes.length === 0 ? (
+                  <div className="rounded-2xl p-14 text-center" style={cardStyle}>
+                    <FileText size={28} className="mx-auto mb-2" style={{ color: 'var(--text-3)' }} />
+                    <p className="text-[13px]" style={{ color: 'var(--text-3)' }}>No tests created yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {quizzes.map(q => (
+                      <div key={q._id}
+                        className="flex items-center justify-between rounded-2xl p-4"
+                        style={cardStyle}>
+                        <div className="flex items-center gap-4 min-w-0">
+                          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                            style={{ background: 'rgba(22,163,74,0.10)', border: '1px solid rgba(22,163,74,0.20)' }}>
+                            <FileText size={15} className="text-eco-400" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-[14px] font-semibold truncate">{q.title}</p>
+                            <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-3)' }}>
+                              {q.subject} · {q.chapter} · {q.class} · {q.questions?.length || 0} questions
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <span className="text-[12px] font-mono text-eco-400">+{q.xpReward} XP</span>
+                          <button onClick={() => openEditQuiz(q)}
+                            className="p-1.5 rounded-lg hover:bg-white/[0.06] transition-colors" style={{ color: 'var(--text-3)' }}>
+                            <Pencil size={13} />
+                          </button>
+                          <button onClick={() => deleteQuiz(q._id)}
+                            className="p-1.5 rounded-lg hover:text-red-400 transition-colors" style={{ color: 'var(--text-3)' }}>
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
