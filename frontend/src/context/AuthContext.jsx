@@ -37,7 +37,7 @@ export function AuthProvider({ children }) {
       const { data } = await api.get('/users/me');
       const normalized = {
         ...data,
-        id:     data._id || data.id,
+        id:     data.id || data.id,
         avatar: data.avatar || '',   // ensure avatar is always present
       };
       setUser(normalized);
