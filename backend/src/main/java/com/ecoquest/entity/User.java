@@ -47,11 +47,13 @@ public class User {
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "user_badges", joinColumns = @JoinColumn(name = "user_id"))
     @Column(name = "badge")
+    @OrderColumn(name = "badge_order")
     private List<String> badges = new ArrayList<>();
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "user_interests", joinColumns = @JoinColumn(name = "user_id"))
     @Column(name = "interest")
+    @OrderColumn(name = "interest_order")
     private List<String> interests = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
