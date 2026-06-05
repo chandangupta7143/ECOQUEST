@@ -29,7 +29,7 @@ public class EmailService {
     }
 
     public void sendVerificationEmail(String to, String token) {
-        String verifyUrl = "http://localhost:5000/api/auth/verify-email?token=" + token;
+        String verifyUrl = "https://ecoquest-1-6wdm.onrender.com/api/auth/verify-email?token=" + token;
 
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromEmail);

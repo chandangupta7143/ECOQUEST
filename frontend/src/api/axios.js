@@ -1,8 +1,8 @@
 import axios from 'axios';
 
-// In production (Vercel): VITE_API_URL = https://ecoquest-bx2q.onrender.com
+// In production (Vercel): VITE_API_URL = https://ecoquest-1-6wdm.onrender.com
 // In development (local): VITE_API_URL = http://localhost:5000  (set in frontend/.env)
-const BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const BASE = import.meta.env.VITE_API_URL || 'https://ecoquest-1-6wdm.onrender.com';
 
 const api = axios.create({ baseURL: `${BASE}/api` });
 
