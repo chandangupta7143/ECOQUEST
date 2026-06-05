@@ -1,4 +1,4 @@
-# EcoQuest 2.0 🌱
+# EcoQuest | JAVA FULL STACK 🌱
 
 EcoQuest is a gamified environmental education platform built for students and teachers. It empowers students to take real-world civic actions (planting trees, recycling, saving water) and rewards them with XP, leveling up their "Eco-Warrior" status.
 
