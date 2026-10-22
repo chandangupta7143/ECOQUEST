@@ -136,6 +136,7 @@ export default function Register() {
   const [showPw, setShowPw]   = useState(false);
   const [error, setError]     = useState('');
   const [loading, setLoading] = useState(false);
+  const [slowServerHint, setSlowServerHint] = useState(false);
   const [done, setDone]       = useState(false);
 
   const emailResult    = validateEmailFrontend(form.email);
@@ -155,6 +156,8 @@ export default function Register() {
     e.preventDefault();
     setError('');
     setLoading(true);
+    setSlowServerHint(false);
+    const timer = setTimeout(() => setSlowServerHint(true), 4000);
     try {
       const { data } = await api.post('/auth/register', form);
       if (data.devMode && data.token) {
@@ -167,7 +170,9 @@ export default function Register() {
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed. Please try again.');
     } finally {
+      clearTimeout(timer);
       setLoading(false);
+      setSlowServerHint(false);
     }
   };
 
@@ -539,6 +544,12 @@ export default function Register() {
                   )}
                 </button>
               </div>
+
+              {slowServerHint && (
+                <p style={{ fontSize: 12, color: 'var(--text-3)', textAlign: 'center', marginTop: 4 }}>
+                  Server instance is waking up, please wait a moment...
+                </p>
+              )}
             </form>
           )}
 

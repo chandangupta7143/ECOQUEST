@@ -1,5 +1,7 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import api from './api/axios';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -23,6 +25,12 @@ function ProtectedRoute({ children, role }) {
 
 function AppRoutes() {
   const { user } = useAuth();
+
+  // Background wake-up ping for Render free instance cold start
+  useEffect(() => {
+    api.get('/health').catch(() => {});
+  }, []);
+
   return (
     <Routes>
       <Route path="/" element={<Home />} />

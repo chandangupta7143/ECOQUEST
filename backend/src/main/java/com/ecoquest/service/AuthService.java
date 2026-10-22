@@ -7,6 +7,8 @@ import com.ecoquest.entity.User;
 import com.ecoquest.exception.EcoQuestException;
 import com.ecoquest.repository.UserRepository;
 import com.ecoquest.security.JwtUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -18,6 +20,8 @@ import java.util.UUID;
 
 @Service
 public class AuthService {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -34,60 +38,69 @@ public class AuthService {
         this.emailService = emailService;
     }
 
-    @Transactional
     public AuthResponse register(RegisterRequest req) {
+        long tStart = System.currentTimeMillis();
         String cleanEmail = req.getEmail().trim().toLowerCase();
 
-        // Uniqueness check
+        // 1. Uniqueness check
+        long tBeforeCheck = System.currentTimeMillis();
         if (userRepository.existsByEmail(cleanEmail)) {
             throw new EcoQuestException(HttpStatus.BAD_REQUEST, "Email already registered");
         }
+        long emailCheckMs = System.currentTimeMillis() - tBeforeCheck;
 
-        // Hash password
+        // 2. Hash password (CPU-bound, kept outside DB transaction)
+        long tBeforeHash = System.currentTimeMillis();
         String hashed = passwordEncoder.encode(req.getPassword());
+        long passwordHashMs = System.currentTimeMillis() - tBeforeHash;
 
-        // Verification token
-        String token  = UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString().replace("-", "");
-        LocalDateTime expiry = LocalDateTime.now().plusHours(24);
+        boolean emailEnabled = emailService.isEmailConfigured();
+        String token = emailEnabled
+                ? UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString().replace("-", "")
+                : null;
+        LocalDateTime expiry = emailEnabled ? LocalDateTime.now().plusHours(24) : null;
 
         User.Role role = req.getRole() != null && req.getRole().equals("teacher")
                 ? User.Role.teacher : User.Role.student;
 
-        User user = User.builder()
-                .name(req.getName().trim())
-                .email(cleanEmail)
-                .password(hashed)
-                .role(role)
-                .className(req.getClassName() != null ? req.getClassName() : "")
-                .school(req.getSchool() != null ? req.getSchool() : "")
-                .isVerified(false)
-                .verificationToken(token)
-                .verificationTokenExpiry(expiry)
-                .build();
-        user = userRepository.save(user);
+        // 3. Persist user in a concise transaction
+        long tBeforeSave = System.currentTimeMillis();
+        User user = saveNewUser(req.getName().trim(), cleanEmail, hashed, role,
+                req.getClassName() != null ? req.getClassName() : "",
+                req.getSchool() != null ? req.getSchool() : "",
+                !emailEnabled, token, expiry);
+        long dbSaveMs = System.currentTimeMillis() - tBeforeSave;
 
-        if (emailService.isEmailConfigured()) {
-            // Production: send verification email
+        // 4. Handle email verification outside DB transaction to avoid connection pool starvation
+        long emailSendMs = 0;
+        if (emailEnabled) {
+            long tBeforeEmail = System.currentTimeMillis();
             try {
                 emailService.sendVerificationEmail(cleanEmail, token);
+                emailSendMs = System.currentTimeMillis() - tBeforeEmail;
             } catch (Exception e) {
-                userRepository.delete(user);
+                log.error("Failed to send verification email to recipient: {}", e.getMessage());
+                deleteFailedUser(user.getId());
                 throw new EcoQuestException(HttpStatus.INTERNAL_SERVER_ERROR,
                         "Could not send verification email. Please try again.");
             }
+
+            long totalMs = System.currentTimeMillis() - tStart;
+            log.info("Auth register completed in {}ms [emailCheck={}ms, passwordHash={}ms, dbSave={}ms, emailSend={}ms, autoVerify=false]",
+                    totalMs, emailCheckMs, passwordHashMs, dbSaveMs, emailSendMs);
+
             return AuthResponse.builder()
                     .user(AuthResponse.UserDto.builder()
                             .email(cleanEmail)
                             .build())
                     .build();
         } else {
-            // Dev mode: auto-verify
-            user.setIsVerified(true);
-            user.setVerificationToken(null);
-            user.setVerificationTokenExpiry(null);
-            userRepository.save(user);
-
+            // Dev mode: auto-verified with single save
             String jwt = jwtUtils.generateToken(user.getId(), user.getRole().name());
+            long totalMs = System.currentTimeMillis() - tStart;
+            log.info("Auth register completed in {}ms [emailCheck={}ms, passwordHash={}ms, dbSave={}ms, emailSend=0ms, autoVerify=true]",
+                    totalMs, emailCheckMs, passwordHashMs, dbSaveMs);
+
             return AuthResponse.builder()
                     .token(jwt)
                     .devMode(true)
@@ -96,14 +109,47 @@ public class AuthService {
         }
     }
 
+    @Transactional
+    public User saveNewUser(String name, String email, String password, User.Role role,
+                            String className, String school, boolean isVerified,
+                            String token, LocalDateTime expiry) {
+        User user = User.builder()
+                .name(name)
+                .email(email)
+                .password(password)
+                .role(role)
+                .className(className)
+                .school(school)
+                .isVerified(isVerified)
+                .verificationToken(token)
+                .verificationTokenExpiry(expiry)
+                .build();
+        return userRepository.save(user);
+    }
+
+    @Transactional
+    public void deleteFailedUser(Long userId) {
+        try {
+            userRepository.deleteById(userId);
+        } catch (Exception ex) {
+            log.warn("Could not clean up unverified user with id {}: {}", userId, ex.getMessage());
+        }
+    }
+
     public AuthResponse login(LoginRequest req) {
+        long tStart = System.currentTimeMillis();
         String cleanEmail = req.getEmail().trim().toLowerCase();
+
+        long tBeforeLookup = System.currentTimeMillis();
         User user = userRepository.findByEmail(cleanEmail)
                 .orElseThrow(() -> new EcoQuestException(HttpStatus.BAD_REQUEST, "Invalid email or password"));
+        long userLookupMs = System.currentTimeMillis() - tBeforeLookup;
 
+        long tBeforeVerify = System.currentTimeMillis();
         if (!passwordEncoder.matches(req.getPassword(), user.getPassword())) {
             throw new EcoQuestException(HttpStatus.BAD_REQUEST, "Invalid email or password");
         }
+        long passwordVerifyMs = System.currentTimeMillis() - tBeforeVerify;
 
         if (!user.getIsVerified()) {
             throw new EcoQuestException(HttpStatus.FORBIDDEN,
@@ -111,6 +157,10 @@ public class AuthService {
         }
 
         String token = jwtUtils.generateToken(user.getId(), user.getRole().name());
+        long totalMs = System.currentTimeMillis() - tStart;
+        log.info("Auth login completed in {}ms [userLookup={}ms, passwordVerify={}ms]",
+                totalMs, userLookupMs, passwordVerifyMs);
+
         return AuthResponse.builder()
                 .token(token)
                 .user(toUserDto(user))

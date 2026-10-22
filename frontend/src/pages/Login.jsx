@@ -35,6 +35,7 @@ export default function Login() {
   const [emailOk, setEmailOk]         = useState(false);
   const [showPw, setShowPw]           = useState(false);
   const [loading, setLoading]         = useState(false);
+  const [slowServerHint, setSlowServerHint] = useState(false);
   const [notVerified, setNotVerified] = useState(false);
   const [resendState, setResendState] = useState('idle'); // idle | sending | sent
 
@@ -72,6 +73,8 @@ export default function Login() {
     }
 
     setLoading(true);
+    setSlowServerHint(false);
+    const timer = setTimeout(() => setSlowServerHint(true), 4000);
     try {
       const user = await login(form.email, form.password);
       navigate(user.role === 'teacher' ? '/teacher' : '/dashboard');
@@ -84,7 +87,9 @@ export default function Login() {
         setError(data?.message || 'Invalid email or password');
       }
     } finally {
+      clearTimeout(timer);
       setLoading(false);
+      setSlowServerHint(false);
     }
   };
 
@@ -366,6 +371,12 @@ export default function Login() {
                 </>
               )}
             </button>
+
+            {slowServerHint && (
+              <p style={{ fontSize: 12, color: 'var(--text-3)', textAlign: 'center', marginTop: 4 }}>
+                Server instance is waking up, please wait a moment...
+              </p>
+            )}
           </form>
 
           {/* Footer */}

@@ -2,6 +2,7 @@ package com.ecoquest.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
@@ -9,7 +10,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "users")
+@Table(name = "users", indexes = {
+    @Index(name = "idx_users_email", columnList = "email"),
+    @Index(name = "idx_users_verification_token", columnList = "verification_token")
+})
 public class User {
 
     @Id
@@ -48,12 +52,14 @@ public class User {
     @CollectionTable(name = "user_badges", joinColumns = @JoinColumn(name = "user_id"))
     @Column(name = "badge")
     @OrderColumn(name = "badge_order")
+    @BatchSize(size = 25)
     private List<String> badges = new ArrayList<>();
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "user_interests", joinColumns = @JoinColumn(name = "user_id"))
     @Column(name = "interest")
     @OrderColumn(name = "interest_order")
+    @BatchSize(size = 25)
     private List<String> interests = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
