@@ -493,14 +493,23 @@ export default function Register() {
                     value={form.class}
                     onChange={e => setForm(f => ({ ...f, class: e.target.value }))}
                     required
-                    style={{ cursor: 'pointer' }}
+                    style={{
+                      cursor: 'pointer',
+                      colorScheme: 'dark',
+                      background: 'rgba(18, 20, 23, 0.85)',
+                      color: form.class ? 'var(--text)' : 'var(--text-3)',
+                    }}
                   >
-                    <option value="">Select Class</option>
+                    <option value="" style={{ background: '#121417', color: 'var(--text-3)' }}>Select Class</option>
                     {[
                       'Class 6','Class 7','Class 8','Class 9','Class 10',
                       'Class 11','Class 12',
                       'College Year 1','College Year 2','College Year 3',
-                    ].map(c => <option key={c} value={c}>{c}</option>)}
+                    ].map(c => (
+                      <option key={c} value={c} style={{ background: '#121417', color: '#F8FAFC' }}>
+                        {c}
+                      </option>
+                    ))}
                   </select>
                 </div>
               )}
